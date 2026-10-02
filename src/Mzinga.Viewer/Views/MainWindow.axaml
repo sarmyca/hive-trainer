@@ -1,0 +1,768 @@
+<Window Cursor="{Binding IsIdle, Converter={StaticResource IdleBoolToWaitCursorConverter}}"
+        Height="760"
+        KeyDown="MainWindow_KeyDown"
+        KeyUp="MainWindow_KeyUp"
+        MinHeight="600"
+        MinWidth="1000"
+        Title="{Binding Title}"
+        Width="1180"
+        WindowStartupLocation="CenterScreen"
+        d:DesignHeight="760"
+        d:DesignWidth="1180"
+        mc:Ignorable="d"
+        x:Class="Mzinga.Viewer.Views.MainWindow"
+        x:CompileBindings="True"
+        x:DataType="vm:MainViewModel"
+        xmlns="https://github.com/avaloniaui"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:local="clr-namespace:Mzinga.Viewer"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:Mzinga.Viewer.ViewModels"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Keyboard shortcuts (the classic menu bar is gone, so they live here) -->
+    <Window.KeyBindings>
+        <KeyBinding Command="{Binding NewGame}"
+                    Gesture="Ctrl+N" />
+        <KeyBinding Command="{Binding LoadGame}"
+                    Gesture="Ctrl+O" />
+        <KeyBinding Command="{Binding SaveGame}"
+                    Gesture="Ctrl+S" />
+        <KeyBinding Command="{Binding UndoLastMove}"
+                    Gesture="Ctrl+Z" />
+        <KeyBinding Command="{Binding ShowEngineOptions}"
+                    Gesture="Ctrl+Shift+E" />
+        <KeyBinding Command="{Binding ShowEngineConsole}"
+                    Gesture="Ctrl+Shift+C" />
+        <KeyBinding Command="{Binding ShowViewerConfig}"
+                    Gesture="Ctrl+Shift+V" />
+    </Window.KeyBindings>
+
+    <!-- macOS global menu bar (not shown on Windows/Linux) -->
+    <NativeMenu.Menu>
+        <NativeMenu>
+            <NativeMenuItem Header="File">
+                <NativeMenuItem.Menu>
+                    <NativeMenu>
+                        <NativeMenuItem Command="{Binding NewGame}"
+                                        Gesture="Cmd+N"
+                                        Header="New" />
+                        <NativeMenuItem Command="{Binding LoadGame}"
+                                        Gesture="Cmd+O"
+                                        Header="Open..." />
+                        <NativeMenuItemSeparator />
+                        <NativeMenuItem Command="{Binding SaveGame}"
+                                        Gesture="Cmd+S"
+                                        Header="Save As..." />
+                    </NativeMenu>
+                </NativeMenuItem.Menu>
+            </NativeMenuItem>
+            <NativeMenuItem Header="Review">
+                <NativeMenuItem.Menu>
+                    <NativeMenu>
+                        <NativeMenuItem Command="{Binding MoveToStart}"
+                                        Header="Move To Start" />
+                        <NativeMenuItem Command="{Binding MoveBack}"
+                                        Header="Move Back" />
+                        <NativeMenuItem Command="{Binding MoveForward}"
+                                        Header="Move Forward" />
+                        <NativeMenuItem Command="{Binding MoveToEnd}"
+                                        Header="Move To End" />
+                        <NativeMenuItemSeparator />
+                        <NativeMenuItem Command="{Binding ShowGameMetadata}"
+                                        Header="Edit Metadata" />
+                        <NativeMenuItem Command="{Binding SwitchToPlayMode}"
+                                        Header="Switch to Play Mode" />
+                        <NativeMenuItem Command="{Binding SwitchToReviewMode}"
+                                        Header="Switch to Review Mode" />
+                    </NativeMenu>
+                </NativeMenuItem.Menu>
+            </NativeMenuItem>
+            <NativeMenuItem Header="Engine">
+                <NativeMenuItem.Menu>
+                    <NativeMenu>
+                        <NativeMenuItem Header="{Binding EngineId}"
+                                        IsEnabled="False" />
+                        <NativeMenuItemSeparator />
+                        <NativeMenuItem Command="{Binding FindBestMove}"
+                                        Header="Find Best Move" />
+                        <NativeMenuItemSeparator />
+                        <NativeMenuItem Command="{Binding ShowEngineOptions}"
+                                        Gesture="Cmd+Shift+E"
+                                        Header="Engine Options" />
+                        <NativeMenuItem Command="{Binding ShowEngineConsole}"
+                                        Gesture="Cmd+Shift+C"
+                                        Header="Engine Console" />
+                    </NativeMenu>
+                </NativeMenuItem.Menu>
+            </NativeMenuItem>
+            <NativeMenuItem Header="Viewer">
+                <NativeMenuItem.Menu>
+                    <NativeMenu>
+                        <NativeMenuItem Command="{Binding ToggleShowBoardHistory}"
+                                        Header="Show Board History"
+                                        IsChecked="{Binding ShowBoardHistory}" />
+                        <NativeMenuItem Command="{Binding ToggleShowMoveCommentary}"
+                                        Header="Show Move Commentary"
+                                        IsChecked="{Binding ShowMoveCommentary}" />
+                        <NativeMenuItem Command="{Binding ToggleShowEvaluationBar}"
+                                        Header="Show Evaluation Bar"
+                                        IsChecked="{Binding ShowEvaluationBar}" />
+                        <NativeMenuItemSeparator />
+                        <NativeMenuItem Command="{Binding ToggleAutoCenterBoard}"
+                                        Header="Auto Center Board"
+                                        IsChecked="{Binding AutoCenterBoard}" />
+                        <NativeMenuItem Command="{Binding ToggleAutoZoomBoard}"
+                                        Header="Auto Zoom Board"
+                                        IsChecked="{Binding AutoZoomBoard}" />
+                        <NativeMenuItemSeparator />
+                        <NativeMenuItem Command="{Binding ShowViewerConfig}"
+                                        Gesture="Cmd+Shift+V"
+                                        Header="Viewer Options" />
+                    </NativeMenu>
+                </NativeMenuItem.Menu>
+            </NativeMenuItem>
+        </NativeMenu>
+    </NativeMenu.Menu>
+
+    <Grid ColumnDefinitions="64,*,380">
+
+        <!-- ================= LEFT: navigation rail ================= -->
+        <Border Classes="rail"
+                Grid.Column="0">
+            <DockPanel Margin="0,12">
+                <local:TileControl Classes="MzingaIcon"
+                                   DockPanel.Dock="Top"
+                                   HexSize="17"
+                                   Margin="0,0,0,14"
+                                   ToolTip.Placement="Right"
+                                   ToolTip.Tip="{Binding EngineId}" />
+
+                <!-- Bottom group -->
+                <StackPanel DockPanel.Dock="Bottom">
+                    <Button Classes="rail"
+                            Content="&#xE713;"
+                            ToolTip.Placement="Right"
+                            ToolTip.Tip="View settings">
+                        <Button.Flyout>
+                            <MenuFlyout Placement="RightEdgeAlignedBottom">
+                                <MenuItem Header="Show move list"
+                                          IsChecked="{Binding ShowBoardHistory, Mode=TwoWay}"
+                                          ToggleType="CheckBox" />
+                                <MenuItem Header="Show commentary"
+                                          IsChecked="{Binding ShowMoveCommentary, Mode=TwoWay}"
+                                          ToggleType="CheckBox" />
+                                <MenuItem Header="Show evaluation bar"
+                                          IsChecked="{Binding ShowEvaluationBar, Mode=TwoWay}"
+                                          ToggleType="CheckBox" />
+                                <Separator />
+                                <MenuItem Header="Auto-center board"
+                                          IsChecked="{Binding AutoCenterBoard, Mode=TwoWay}"
+                                          ToggleType="CheckBox" />
+                                <MenuItem Header="Auto-zoom board"
+                                          IsChecked="{Binding AutoZoomBoard, Mode=TwoWay}"
+                                          ToggleType="CheckBox" />
+                                <Separator />
+                                <MenuItem Command="{Binding ShowViewerConfig}"
+                                          Header="All viewer options..."
+                                          InputGesture="Ctrl+Shift+V" />
+                            </MenuFlyout>
+                        </Button.Flyout>
+                    </Button>
+                    <Button Classes="rail"
+                            Content="&#xE897;"
+                            ToolTip.Placement="Right"
+                            ToolTip.Tip="Help">
+                        <Button.Flyout>
+                            <MenuFlyout Placement="RightEdgeAlignedBottom">
+                                <MenuItem Command="{Binding LaunchHiveWebsite}"
+                                          Header="Hive rules &amp; website" />
+                                <MenuItem Command="{Binding LaunchMzingaWebsite}"
+                                          Header="Mzinga website" />
+                                <MenuItem Command="{Binding CheckForUpdatesAsync}"
+                                          Header="Check for updates"
+                                          IsVisible="{Binding CheckForUpdatesEnabled}" />
+                                <Separator />
+                                <MenuItem Command="{Binding ShowLicenses}"
+                                          Header="About MzingaViewer" />
+                            </MenuFlyout>
+                        </Button.Flyout>
+                    </Button>
+                </StackPanel>
+
+                <!-- Top group -->
+                <StackPanel>
+                    <Button Classes="rail primary"
+                            Command="{Binding NewGame}"
+                            Content="&#xE710;"
+                            ToolTip.Placement="Right"
+                            ToolTip.Tip="New game (Ctrl+N)" />
+                    <Button Classes="rail"
+                            Command="{Binding LoadGame}"
+                            Content="&#xE838;"
+                            ToolTip.Placement="Right"
+                            ToolTip.Tip="Open game (Ctrl+O)" />
+                    <Button Classes="rail"
+                            Command="{Binding SaveGame}"
+                            Content="&#xE74E;"
+                            ToolTip.Placement="Right"
+                            ToolTip.Tip="Save game (Ctrl+S)" />
+
+                    <Border Background="{DynamicResource BorderBrush}"
+                            Height="1"
+                            Margin="14,8" />
+
+                    <Button Classes="rail"
+                            Classes.on="{Binding ShowBestMove}"
+                            Command="{Binding ToggleShowBestMove}"
+                            Content="&#xE82F;"
+                            ToolTip.Placement="Right"
+                            ToolTip.Tip="Show best move (hint on/off, H)" />
+                    <Button Classes="rail"
+                            Content="&#xE90F;"
+                            ToolTip.Placement="Right"
+                            ToolTip.Tip="Engine">
+                        <Button.Flyout>
+                            <MenuFlyout Placement="RightEdgeAlignedTop">
+                                <MenuItem Header="{Binding EngineId}"
+                                          IsEnabled="False" />
+                                <Separator />
+                                <MenuItem Header="Show best move"
+                                          IsChecked="{Binding ShowBestMove, Mode=TwoWay}"
+                                          ToggleType="CheckBox" />
+                                <MenuItem Command="{Binding FindBestMove}"
+                                          Header="Play best move" />
+                                <MenuItem Command="{Binding ShowEngineOptions}"
+                                          Header="Engine options..."
+                                          InputGesture="Ctrl+Shift+E" />
+                                <MenuItem Command="{Binding ShowEngineConsole}"
+                                          Header="Engine console"
+                                          InputGesture="Ctrl+Shift+C" />
+                            </MenuFlyout>
+                        </Button.Flyout>
+                    </Button>
+                    <Button Classes="rail"
+                            Content="&#xE712;"
+                            ToolTip.Placement="Right"
+                            ToolTip.Tip="Game">
+                        <Button.Flyout>
+                            <MenuFlyout Placement="RightEdgeAlignedTop">
+                                <MenuItem Command="{Binding SwitchToReviewMode}"
+                                          Header="Switch to review mode" />
+                                <MenuItem Command="{Binding SwitchToPlayMode}"
+                                          Header="Play from this position" />
+                                <Separator />
+                                <MenuItem Command="{Binding ShowGameMetadata}"
+                                          Header="Edit game details..." />
+                                <MenuItem Command="{Binding CopyHistoryToClipboard}"
+                                          Header="Copy moves" />
+                            </MenuFlyout>
+                        </Button.Flyout>
+                    </Button>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- ================= CENTER: board ================= -->
+        <Border Classes="card"
+                Grid.Column="1"
+                Margin="16,16,8,16"
+                Padding="8">
+            <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+
+                <!-- Evaluation bar (only while a game is loaded) -->
+                <Panel Grid.Column="0"
+                       IsVisible="{Binding BoardIsLoaded}">
+                <Border Background="{DynamicResource EvalBlackBrush}"
+                        BorderBrush="{DynamicResource BorderStrongBrush}"
+                        BorderThickness="1"
+                        ClipToBounds="True"
+                        CornerRadius="7"
+                        IsVisible="{Binding ShowEvaluationBar, FallbackValue=True}"
+                        Margin="2,4,6,4"
+                        ToolTip.Tip="Evaluation of the position on screen: more white = White is better"
+                        VerticalAlignment="Stretch"
+                        Width="24">
+                    <Panel>
+                    <ProgressBar Background="Transparent"
+                                 CornerRadius="0"
+                                 Foreground="{DynamicResource EvalWhiteBrush}"
+                                 HorizontalAlignment="Stretch"
+                                 Maximum="100"
+                                 Minimum="0"
+                                 MinWidth="0"
+                                 Orientation="Vertical"
+                                 Value="{Binding EvaluationPercent, Mode=OneWay}"
+                                 VerticalAlignment="Stretch">
+                        <ProgressBar.Transitions>
+                            <Transitions>
+                                <DoubleTransition Duration="0:0:0.35"
+                                                  Easing="CubicEaseOut"
+                                                  Property="Value" />
+                            </Transitions>
+                        </ProgressBar.Transitions>
+                    </ProgressBar>
+                    <!-- Forced win badge ("#3") at the winner's end of the bar -->
+                    <TextBlock FontSize="10"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource EvalBlackBrush}"
+                               HorizontalAlignment="Center"
+                               IsVisible="{Binding IsWhiteForcedWin}"
+                               Margin="0,0,0,4"
+                               Text="{Binding ForcedWinBadge}"
+                               VerticalAlignment="Bottom" />
+                    <TextBlock FontSize="10"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource EvalWhiteBrush}"
+                               HorizontalAlignment="Center"
+                               IsVisible="{Binding IsBlackForcedWin}"
+                               Margin="0,4,0,0"
+                               Text="{Binding ForcedWinBadge}"
+                               VerticalAlignment="Top" />
+                    </Panel>
+                </Border>
+                </Panel>
+
+                <!-- White's hand (filled by the board renderer) -->
+                <StackPanel Background="Transparent"
+                            Grid.Column="1"
+                            IsEnabled="{Binding IsIdle}"
+                            Name="WhiteHandStackPanel"
+                            Orientation="Vertical"
+                            VerticalAlignment="Stretch" />
+
+                <!-- Board (filled by the board renderer) -->
+                <Canvas Background="Transparent"
+                        ClipToBounds="True"
+                        Grid.Column="2"
+                        IsEnabled="{Binding BoardIsLoaded}"
+                        Name="BoardCanvas" />
+
+                <!-- Empty state -->
+                <StackPanel Grid.Column="2"
+                            HorizontalAlignment="Center"
+                            IsHitTestVisible="False"
+                            IsVisible="{Binding !BoardIsLoaded}"
+                            Spacing="6"
+                            VerticalAlignment="Center">
+                    <TextBlock Classes="h1"
+                               HorizontalAlignment="Center"
+                               Text="No game in progress" />
+                    <TextBlock Classes="caption"
+                               HorizontalAlignment="Center"
+                               Text="Start a new game with + (Ctrl+N) or open a saved one (Ctrl+O)" />
+                </StackPanel>
+
+                <!-- Floating board view controls -->
+                <StackPanel Grid.Column="2"
+                            HorizontalAlignment="Right"
+                            Margin="0,0,4,4"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Bottom">
+                    <Button Classes="overlay"
+                            Click="LiftButton_Click"
+                            Content="&#xE74A;"
+                            IsEnabled="{Binding CanRaiseStackedPieces}"
+                            IsVisible="{Binding RelativeSource={RelativeSource Mode=Self} Path=IsEffectivelyEnabled}"
+                            Name="LiftButton"
+                            ToolTip.Tip="Lift stacked pieces (X)" />
+                    <Button Classes="overlay"
+                            Click="ReCenterButton_Click"
+                            Content="&#xE81D;"
+                            IsEnabled="{Binding CanCenterBoard}"
+                            IsVisible="{Binding RelativeSource={RelativeSource Mode=Self} Path=IsEffectivelyEnabled}"
+                            Name="ReCenterButton"
+                            ToolTip.Tip="Re-center board (C)" />
+                    <Button Classes="overlay"
+                            Click="ReZoomButton_Click"
+                            Content="&#xE71E;"
+                            IsEnabled="{Binding CanZoomBoard}"
+                            IsVisible="{Binding RelativeSource={RelativeSource Mode=Self} Path=IsEffectivelyEnabled}"
+                            Name="ReZoomButton"
+                            ToolTip.Tip="Re-zoom board (Z)" />
+                </StackPanel>
+
+                <!-- Black's hand (filled by the board renderer) -->
+                <StackPanel Background="Transparent"
+                            Grid.Column="3"
+                            IsEnabled="{Binding IsIdle}"
+                            Name="BlackHandStackPanel"
+                            Orientation="Vertical"
+                            VerticalAlignment="Stretch" />
+            </Grid>
+        </Border>
+
+        <!-- ================= RIGHT: game panel ================= -->
+        <Border Classes="card"
+                Grid.Column="2"
+                Margin="8,16,16,16">
+            <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto">
+
+                <!-- Header: state, mode, engine activity, peek banner -->
+                <StackPanel Grid.Row="0"
+                            Margin="18,16,18,10"
+                            Spacing="6">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Classes="section"
+                                   Text="GAME"
+                                   VerticalAlignment="Center" />
+                        <Border Classes="pill"
+                                Grid.Column="1">
+                            <TextBlock Text="{Binding ModeLabel}" />
+                        </Border>
+                    </Grid>
+                    <TextBlock Classes="h1"
+                               Text="{Binding GameState}"
+                               TextWrapping="Wrap" />
+                    <StackPanel IsVisible="{Binding IsEngineThinking}"
+                                Orientation="Horizontal"
+                                Spacing="10">
+                        <TextBlock Classes="caption"
+                                   Text="Engine is thinking..."
+                                   VerticalAlignment="Center" />
+                        <ProgressBar Height="4"
+                                     Maximum="100"
+                                     Minimum="0"
+                                     MinWidth="0"
+                                     Value="{Binding TimedCommandProgress, Mode=OneWay}"
+                                     VerticalAlignment="Center"
+                                     Width="120" />
+                    </StackPanel>
+                    <!-- Forced win found by the analyzer -->
+                    <Border Background="{DynamicResource ForcedWinBackgroundBrush}"
+                            CornerRadius="8"
+                            IsVisible="{Binding HasForcedWin}"
+                            Padding="10,6">
+                        <StackPanel Orientation="Horizontal"
+                                    Spacing="8">
+                            <TextBlock Classes="icon"
+                                       Foreground="{DynamicResource WarnBrush}"
+                                       Text="&#xE945;" />
+                            <TextBlock FontWeight="SemiBold"
+                                       Foreground="{DynamicResource WarnBrush}"
+                                       Text="{Binding ForcedWinText}"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+                    <!-- Best-move hint -->
+                    <Border Background="{DynamicResource HintBackgroundBrush}"
+                            CornerRadius="8"
+                            IsVisible="{Binding ShowBestMove}"
+                            Padding="10,6">
+                        <StackPanel Orientation="Horizontal"
+                                    Spacing="8">
+                            <TextBlock Classes="icon"
+                                       Foreground="{DynamicResource HintBrush}"
+                                       Text="&#xE82F;" />
+                            <TextBlock Foreground="{DynamicResource HintBrush}"
+                                       Text="Best move:"
+                                       VerticalAlignment="Center" />
+                            <TextBlock FontFamily="{DynamicResource MonoFont}"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource HintBrush}"
+                                       Text="{Binding BestMoveText}"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+                    <Border Background="{DynamicResource MoveHighlightBrush}"
+                            CornerRadius="8"
+                            IsVisible="{Binding IsPeeking}"
+                            Margin="0,4,0,0"
+                            Padding="12,4,4,4">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock FontWeight="SemiBold"
+                                       Foreground="{DynamicResource AccentBrush}"
+                                       Text="{Binding PeekStatusText}"
+                                       VerticalAlignment="Center" />
+                            <Button Classes="accent"
+                                    Command="{Binding MoveToEnd}"
+                                    Content="Back to live"
+                                    Grid.Column="1"
+                                    Margin="0"
+                                    MinHeight="28"
+                                    Padding="12,2"
+                                    ToolTip.Tip="Return to the current position (End)" />
+                        </Grid>
+                    </Border>
+                </StackPanel>
+
+                <!-- Players -->
+                <StackPanel Grid.Row="1"
+                            Margin="12,0,12,12"
+                            Spacing="4">
+                    <Border Classes="player"
+                            Classes.active="{Binding IsWhiteToMove}">
+                        <Grid ColumnDefinitions="Auto,*,Auto">
+                            <Path Data="M 9,0 L 18,5 L 18,15 L 9,20 L 0,15 L 0,5 Z"
+                                  Fill="{DynamicResource EvalWhiteBrush}"
+                                  Stroke="{DynamicResource BorderStrongBrush}"
+                                  StrokeThickness="1"
+                                  VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1"
+                                        Margin="12,0">
+                                <TextBlock Classes="h2"
+                                           Text="{Binding WhitePlayerName}" />
+                                <TextBlock Classes="caption"
+                                           Text="White" />
+                            </StackPanel>
+                            <TextBlock Classes="caption"
+                                       Foreground="{DynamicResource AccentBrush}"
+                                       Grid.Column="2"
+                                       IsVisible="{Binding IsWhiteToMove}"
+                                       Text="to move"
+                                       VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
+                    <Border Classes="player"
+                            Classes.active="{Binding IsBlackToMove}">
+                        <Grid ColumnDefinitions="Auto,*,Auto">
+                            <Path Data="M 9,0 L 18,5 L 18,15 L 9,20 L 0,15 L 0,5 Z"
+                                  Fill="{DynamicResource EvalBlackBrush}"
+                                  Stroke="{DynamicResource BorderStrongBrush}"
+                                  StrokeThickness="1"
+                                  VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1"
+                                        Margin="12,0">
+                                <TextBlock Classes="h2"
+                                           Text="{Binding BlackPlayerName}" />
+                                <TextBlock Classes="caption"
+                                           Text="Black" />
+                            </StackPanel>
+                            <TextBlock Classes="caption"
+                                       Foreground="{DynamicResource AccentBrush}"
+                                       Grid.Column="2"
+                                       IsVisible="{Binding IsBlackToMove}"
+                                       Text="to move"
+                                       VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
+                </StackPanel>
+
+                <Border Background="{DynamicResource BorderBrush}"
+                        Grid.Row="2"
+                        Height="1" />
+
+                <!-- Move list -->
+                <DockPanel Grid.Row="3"
+                           IsVisible="{Binding ShowBoardHistory, FallbackValue=True}">
+                    <Grid ColumnDefinitions="*,Auto"
+                          DockPanel.Dock="Top"
+                          Margin="18,10,10,4">
+                        <TextBlock Classes="section"
+                                   Text="MOVES"
+                                   VerticalAlignment="Center" />
+                        <Button Classes="ghost"
+                                Command="{Binding CopyHistoryToClipboard}"
+                                Content="&#xE8C8;"
+                                FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                FontSize="13"
+                                Grid.Column="1"
+                                Margin="0"
+                                MinHeight="0"
+                                MinWidth="0"
+                                Padding="8,4"
+                                ToolTip.Tip="Copy moves" />
+                    </Grid>
+                    <Panel>
+                        <TextBlock Classes="caption"
+                                   HorizontalAlignment="Center"
+                                   IsVisible="{Binding !HasMoves}"
+                                   Margin="0,24"
+                                   Text="No moves yet"
+                                   VerticalAlignment="Top" />
+                        <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                                      Name="MoveListScrollViewer"
+                                      VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding MoveRows}"
+                                          Margin="10,0,10,8"
+                                          Name="MoveListItems">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:MoveListRow">
+                                        <Border Classes="moverow"
+                                                Classes.alt="{Binding IsAlternate}">
+                                            <Grid ColumnDefinitions="38,*,*">
+                                                <TextBlock Classes="caption"
+                                                           FontFamily="{DynamicResource MonoFont}"
+                                                           Margin="4,0,0,0"
+                                                           Text="{Binding Number}"
+                                                           VerticalAlignment="Center" />
+                                                <Button Classes="ply"
+                                                        Classes.current="{Binding White.IsCurrent}"
+                                                        Classes.future="{Binding White.IsFuture}"
+                                                        Command="{Binding White.JumpCommand}"
+                                                        Content="{Binding White.Notation}"
+                                                        Grid.Column="1" />
+                                                <Button Classes="ply"
+                                                        Classes.current="{Binding Black.IsCurrent, FallbackValue=False}"
+                                                        Classes.future="{Binding Black.IsFuture, FallbackValue=False}"
+                                                        Command="{Binding Black.JumpCommand}"
+                                                        Content="{Binding Black.Notation}"
+                                                        Grid.Column="2"
+                                                        IsVisible="{Binding HasBlack}" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Panel>
+                </DockPanel>
+
+                <!-- Commentary (optional) -->
+                <DockPanel Grid.Row="4"
+                           IsVisible="{Binding ShowMoveCommentary, FallbackValue=False}"
+                           MaxHeight="150">
+                    <TextBlock Classes="section"
+                               DockPanel.Dock="Top"
+                               Margin="18,8,18,4"
+                               Text="COMMENTARY" />
+                    <TextBox AcceptsReturn="True"
+                             Classes="Scrolling"
+                             Margin="12,0,12,8"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             Text="{Binding CurrentMoveCommentary}"
+                             TextWrapping="Wrap"
+                             VerticalContentAlignment="Top"
+                             Watermark="Notes for this move..." />
+                </DockPanel>
+
+                <Border Background="{DynamicResource BorderBrush}"
+                        Grid.Row="5"
+                        Height="1" />
+
+                <!-- Footer: navigation + actions -->
+                <StackPanel Grid.Row="6"
+                            Margin="12,10,12,12"
+                            Spacing="6">
+                    <StackPanel HorizontalAlignment="Center"
+                                IsVisible="{Binding TargetMove, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                Orientation="Horizontal"
+                                Spacing="6">
+                        <TextBlock Classes="caption"
+                                   Text="Selected:" />
+                        <TextBlock Classes="caption"
+                                   FontFamily="{DynamicResource MonoFont}"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   Text="{Binding TargetMove}" />
+                    </StackPanel>
+
+                    <Grid ColumnDefinitions="*,*,*,*">
+                        <Button Classes="ghost nav"
+                                Command="{Binding MoveToStart}"
+                                Content="&#xE892;"
+                                Grid.Column="0"
+                                HorizontalAlignment="Stretch"
+                                ToolTip.Tip="First move (Home)" />
+                        <Button Classes="ghost nav"
+                                Command="{Binding MoveBack}"
+                                Content="&#xE76B;"
+                                Grid.Column="1"
+                                HorizontalAlignment="Stretch"
+                                ToolTip.Tip="Previous move (Left)" />
+                        <Button Classes="ghost nav"
+                                Command="{Binding MoveForward}"
+                                Content="&#xE76C;"
+                                Grid.Column="2"
+                                HorizontalAlignment="Stretch"
+                                ToolTip.Tip="Next move (Right)" />
+                        <Button Classes="ghost nav"
+                                Command="{Binding MoveToEnd}"
+                                Content="&#xE893;"
+                                Grid.Column="3"
+                                HorizontalAlignment="Stretch"
+                                ToolTip.Tip="Current position (End)" />
+                    </Grid>
+
+                    <!-- Play mode actions -->
+                    <Grid ColumnDefinitions="*,*"
+                          IsVisible="{Binding IsPlayMode}"
+                          RowDefinitions="Auto,Auto">
+                        <Button Classes="action"
+                                Command="{Binding UndoLastMove}"
+                                Grid.Column="0"
+                                HorizontalAlignment="Stretch"
+                                ToolTip.Tip="Undo (Ctrl+Z)">
+                            <StackPanel Orientation="Horizontal"
+                                        Spacing="6">
+                                <TextBlock Classes="icon"
+                                           Text="&#xE7A7;" />
+                                <TextBlock Text="Undo" />
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="action"
+                                Command="{Binding Pass}"
+                                Grid.Column="1"
+                                HorizontalAlignment="Stretch"
+                                ToolTip.Tip="Pass (only when you have no legal move)">
+                            <StackPanel Orientation="Horizontal"
+                                        Spacing="6">
+                                <TextBlock Classes="icon"
+                                           Text="&#xE72A;" />
+                                <TextBlock Text="Pass" />
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="action"
+                                Classes.on="{Binding ShowBestMove}"
+                                Command="{Binding ToggleShowBestMove}"
+                                Grid.Column="0"
+                                Grid.Row="1"
+                                HorizontalAlignment="Stretch"
+                                ToolTip.Tip="Show the best move on the board without playing it (H)">
+                            <StackPanel Orientation="Horizontal"
+                                        Spacing="6">
+                                <TextBlock Classes="icon"
+                                           Text="&#xE82F;" />
+                                <TextBlock Text="Show hint" />
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="action"
+                                Command="{Binding FindBestMove}"
+                                Grid.Column="1"
+                                Grid.Row="1"
+                                HorizontalAlignment="Stretch"
+                                ToolTip.Tip="Let the engine play the best move for you">
+                            <StackPanel Orientation="Horizontal"
+                                        Spacing="6">
+                                <TextBlock Classes="icon"
+                                           Text="&#xE945;" />
+                                <TextBlock Text="Play best" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                    <Button Classes="accent"
+                            Command="{Binding PlayTarget}"
+                            Content="Play selected move"
+                            HorizontalAlignment="Stretch"
+                            IsVisible="{Binding RelativeSource={RelativeSource Mode=Self} Path=IsEffectivelyEnabled}" />
+
+                    <!-- Review mode actions -->
+                    <Grid ColumnDefinitions="*,*"
+                          IsVisible="{Binding IsReviewMode}">
+                        <Button Classes="accent action"
+                                Command="{Binding SwitchToPlayMode}"
+                                Grid.Column="0"
+                                HorizontalAlignment="Stretch">
+                            <StackPanel Orientation="Horizontal"
+                                        Spacing="6">
+                                <TextBlock Classes="icon"
+                                           Text="&#xE768;" />
+                                <TextBlock Text="Play from here" />
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="action"
+                                Command="{Binding ShowGameMetadata}"
+                                Grid.Column="1"
+                                HorizontalAlignment="Stretch">
+                            <StackPanel Orientation="Horizontal"
+                                        Spacing="6">
+                                <TextBlock Classes="icon"
+                                           Text="&#xE70F;" />
+                                <TextBlock Text="Game details" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

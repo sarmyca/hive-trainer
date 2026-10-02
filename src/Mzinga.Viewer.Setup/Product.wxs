@@ -1,0 +1,93 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+    <Package InstallerVersion="500"
+             Language="1033"
+             Manufacturer="Jon Thysell"
+             Name="Mzinga"
+             UpgradeCode="A8C747E7-2EE7-4224-82C0-25462EF0493C"
+             Version="!(bind.FileVersion.MzingaViewerApp)">
+        <MajorUpgrade AllowSameVersionUpgrades="yes"
+                      DowngradeErrorMessage="A newer version of Mzinga is already installed." /><?if $(var.Configuration) = "Release"?>
+        <MediaTemplate CompressionLevel="high"
+                       EmbedCab="yes" /><?elseif $(var.Configuration) = "Debug"?>
+        <MediaTemplate CompressionLevel="none"
+                       EmbedCab="yes" /><?endif?>
+        <Feature Id="MzingaFeature"
+                 Level="1"
+                 Title="Mzinga">
+            <ComponentGroupRef Id="MzingaPublishOut" />
+            <ComponentRef Id="MzingaViewerApp" />
+        </Feature>
+        <Icon Id="icon.ico"
+              SourceFile="..\Mzinga.Viewer\Resources\icon.ico" />
+        <Property Id="ARPPRODUCTICON"
+                  Value="icon.ico" />
+        <Property Id="ARPHELPLINK"
+                  Value="http://jonthysell.com" />
+        <Property Id="ARPURLINFOABOUT"
+                  Value="http://jonthysell.com" />
+        <Property Id="WixShellExecTarget"
+                  Value="[#MzingaViewerApp]" />
+        <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT"
+                  Value="Start Mzinga" />
+        <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX"
+                  Value="1" />
+        <CustomAction Directory="INSTALLFOLDER"
+                      ExeCommand="[#MzingaViewerApp]"
+                      Id="LaunchApplication"
+                      Impersonate="yes"
+                      Return="asyncNoWait" />
+        <UI>
+            <ui:WixUI Id="WixUI_Minimal" />
+            <Publish Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed"
+                     Control="Finish"
+                     Dialog="ExitDialog"
+                     Event="DoAction"
+                     Value="LaunchApplication" />
+        </UI>
+        <InstallExecuteSequence>
+            <Custom Action="LaunchApplication"
+                    After="InstallFinalize"
+                    Condition="UILevel = 3 and NOT Installed" />
+        </InstallExecuteSequence>
+        <WixVariable Id="WixUILicenseRtf"
+                     Value="license.rtf" />
+        <Property Id="DISABLEADVTSHORTCUTS"
+                  Value="1" />
+    </Package>
+    <Fragment>
+        <?if $(var.Platform) = "x86"?>
+        <StandardDirectory Id="ProgramFilesFolder">
+        <?else?>
+        <StandardDirectory Id="ProgramFiles64Folder">
+        <?endif?>
+            <Directory Id="INSTALLFOLDER"
+                        Name="Mzinga">
+                <Component Id="MzingaViewerApp">
+                    <File Id="MzingaViewerApp"
+                            KeyPath="yes"
+                            Source="$(var.PublishPath)\MzingaViewer.exe">
+                        <Shortcut Advertise="yes"
+                                    Description="AI player for the board game Hive."
+                                    Directory="ProgramMenuFolder"
+                                    Id="MzingaViewerAppShortcut"
+                                    Name="MzingaViewer"
+                                    WorkingDirectory="INSTALLFOLDER" />
+                    </File>
+                    <File Id="MzingaReadme"
+                            Source="..\..\README.md" />
+                    <File Id="MzingaLicense"
+                            Name="License.txt"
+                            Source="..\..\scripts\Licenses.txt" />
+                    <RemoveFolder Id="ApplicationProgramsFolder"
+                                    On="uninstall" />
+                </Component>
+            </Directory>
+        <?if $(var.Platform) = "x86"?>
+        </StandardDirectory>
+        <?else?>
+        </StandardDirectory>
+        <?endif?>
+        <StandardDirectory Id="ProgramMenuFolder" />
+    </Fragment>
+</Wix>

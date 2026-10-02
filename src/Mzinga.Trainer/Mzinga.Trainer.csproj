@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <StartupObject>Mzinga.Trainer.Program</StartupObject>
+    <AssemblyName>MzingaTrainer</AssemblyName>
+    <RootNamespace>Mzinga.Trainer</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Mzinga\Mzinga.csproj" />
+  </ItemGroup>
+
+</Project>

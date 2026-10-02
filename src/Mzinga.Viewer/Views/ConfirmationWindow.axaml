@@ -1,0 +1,76 @@
+<Window CanResize="False"
+        MinHeight="100"
+        MinWidth="480"
+        SizeToContent="Height"
+        Title="{Binding Title}"
+        Width="480"
+        WindowStartupLocation="CenterOwner"
+        d:DesignHeight="100"
+        d:DesignWidth="480"
+        mc:Ignorable="d"
+        x:Class="Mzinga.Viewer.Views.ConfirmationWindow"
+        x:CompileBindings="True"
+        x:DataType="vm:ConfirmationViewModel"
+        xmlns="https://github.com/avaloniaui"
+        xmlns:ctxt="clr-namespace:ColorTextBlock.Avalonia;assembly=ColorTextBlock.Avalonia"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:local="clr-namespace:Mzinga.Viewer"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:md="clr-namespace:Markdown.Avalonia;assembly=Markdown.Avalonia"
+        xmlns:vm="clr-namespace:Mzinga.Viewer.ViewModels"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Panel>
+        <Grid ColumnDefinitions="Auto,*"
+              Margin="5"
+              RowDefinitions="*,Auto">
+            <local:TileControl Classes="MzingaIcon"
+                               Grid.Column="0"
+                               Grid.Row="0"
+                               Grid.RowSpan="2" />
+            <StackPanel Classes="DialogMain"
+                        Grid.Column="1"
+                        Grid.Row="0">
+                <TextBlock Margin="5"
+                           Text="{Binding Message}"
+                           TextWrapping="Wrap" />
+                <Expander Header="Details"
+                          HorizontalAlignment="Stretch"
+                          IsVisible="{Binding ShowDetails}"
+                          Margin="5"
+                          Padding="0">
+                    <Grid Height="150"
+                          Margin="5">
+                        <md:MarkdownScrollViewer Markdown="{Binding Details, Mode=OneWay}">
+                            <md:MarkdownScrollViewer.Styles>
+                                <StyleInclude Source="avares://MzingaViewer/Resources/MarkdownStyles.axaml" />
+                            </md:MarkdownScrollViewer.Styles>
+                            <md:MarkdownScrollViewer.Engine>
+                                <md:Markdown HyperlinkCommand="{Binding $parent[Window].DataContext.AppVM.LaunchURL}" />
+                            </md:MarkdownScrollViewer.Engine>
+                        </md:MarkdownScrollViewer>
+                        <Grid.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Command="{Binding CopyDetailsToClipboard}"
+                                          Header="Copy Details" />
+                            </ContextMenu>
+                        </Grid.ContextMenu>
+                    </Grid>
+                </Expander>
+            </StackPanel>
+            <StackPanel Classes="DialogButtons"
+                        Grid.Column="1"
+                        Grid.ColumnSpan="2"
+                        Grid.Row="1">
+                <Button Command="{Binding Yes}"
+                        Content="Yes"
+                        IsDefault="True" />
+                <Button Command="{Binding No}"
+                        Content="No"
+                        IsDefault="True" />
+                <Button Command="{Binding Cancel}"
+                        Content="Cancel"
+                        IsDefault="True" />
+            </StackPanel>
+        </Grid>
+    </Panel>
+</Window>

@@ -1,0 +1,65 @@
+<Window CanResize="False"
+        MinHeight="100"
+        MinWidth="100"
+        SizeToContent="Height"
+        Title="{Binding Title}"
+        Width="600"
+        WindowStartupLocation="CenterOwner"
+        d:DesignHeight="640"
+        d:DesignWidth="480"
+        mc:Ignorable="d"
+        x:Class="Mzinga.Viewer.Views.AboutWindow"
+        x:CompileBindings="True"
+        x:DataType="vm:AboutViewModel"
+        xmlns="https://github.com/avaloniaui"
+        xmlns:ctxt="clr-namespace:ColorTextBlock.Avalonia;assembly=ColorTextBlock.Avalonia"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:local="clr-namespace:Mzinga.Viewer"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:md="clr-namespace:Markdown.Avalonia;assembly=Markdown.Avalonia"
+        xmlns:vm="clr-namespace:Mzinga.Viewer.ViewModels"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Panel>
+        <Grid ColumnDefinitions="Auto,*"
+              Margin="5"
+              RowDefinitions="*,Auto">
+            <local:TileControl Classes="MzingaIcon"
+                               Grid.Column="0"
+                               Grid.Row="0"
+                               Grid.RowSpan="2" />
+            <TabControl Grid.Column="1"
+                        Grid.Row="0"
+                        Height="375"
+                        ItemsSource="{Binding TabItems}">
+                <TabControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock FontSize="14"
+                                   FontWeight="Bold"
+                                   Text="{Binding Header, Mode=OneWay}" />
+                    </DataTemplate>
+                </TabControl.ItemTemplate>
+                <TabControl.ContentTemplate>
+                    <DataTemplate>
+                        <md:MarkdownScrollViewer Markdown="{Binding Body, Mode=OneWay}"
+                                                 x:DataType="vm:ObservableAboutTabItem">
+                            <md:MarkdownScrollViewer.Styles>
+                                <StyleInclude Source="avares://MzingaViewer/Resources/MarkdownStyles.axaml" />
+                            </md:MarkdownScrollViewer.Styles>
+                            <md:MarkdownScrollViewer.Engine>
+                                <md:Markdown HyperlinkCommand="{Binding AppVM.LaunchURL}" />
+                            </md:MarkdownScrollViewer.Engine>
+                        </md:MarkdownScrollViewer>
+                    </DataTemplate>
+                </TabControl.ContentTemplate>
+            </TabControl>
+            <StackPanel Classes="DialogButtons"
+                        Grid.Column="1"
+                        Grid.ColumnSpan="2"
+                        Grid.Row="1">
+                <Button Command="{Binding Accept}"
+                        Content="OK"
+                        IsDefault="True" />
+            </StackPanel>
+        </Grid>
+    </Panel>
+</Window>

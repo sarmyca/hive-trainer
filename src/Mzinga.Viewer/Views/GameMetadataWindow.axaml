@@ -1,0 +1,87 @@
+<Window CanResize="False"
+        MinHeight="100"
+        MinWidth="100"
+        SizeToContent="WidthAndHeight"
+        Title="{Binding Title, FallbackValue=Edit Metadata}"
+        WindowStartupLocation="CenterOwner"
+        d:DesignHeight="640"
+        d:DesignWidth="480"
+        mc:Ignorable="d"
+        x:Class="Mzinga.Viewer.Views.GameMetadataWindow"
+        x:CompileBindings="True"
+        x:DataType="vm:GameMetadataViewModel"
+        xmlns="https://github.com/avaloniaui"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:local="clr-namespace:Mzinga.Viewer"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:Mzinga.Viewer.ViewModels"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Panel>
+        <Grid ColumnDefinitions="Auto,*"
+              Margin="5"
+              RowDefinitions="*,Auto">
+            <local:TileControl Classes="MzingaIcon"
+                               Grid.Column="0"
+                               Grid.Row="0"
+                               Grid.RowSpan="2" />
+            <Grid Grid.Column="1"
+                  Grid.Row="0"
+                  Height="375">
+                <ScrollViewer Margin="0,5"
+                              Padding="10,0,30,0">
+                    <StackPanel Margin="5,0"
+                                Width="500">
+                        <ItemsControl ItemsSource="{Binding StandardTags}">
+                            <ItemsControl.DataTemplates>
+                                <DataTemplate DataType="{x:Type vm:ObservableGameMetadataStringTag}">
+                                    <DockPanel Classes="GroupBox">
+                                        <Label Classes="Header"
+                                               Content="{Binding Key}"
+                                               DockPanel.Dock="Top" />
+                                        <TextBox IsReadOnly="{Binding IsReadOnly}"
+                                                 Text="{Binding Value}" />
+                                    </DockPanel>
+                                </DataTemplate>
+                                <DataTemplate DataType="{x:Type vm:ObservableGameMetadataEnumTag}">
+                                    <DockPanel Classes="GroupBox">
+                                        <Label Classes="Header"
+                                               Content="{Binding Key}"
+                                               DockPanel.Dock="Top" />
+                                        <ComboBox IsEnabled="{Binding CanEdit}"
+                                                  ItemsSource="{Binding PossibleValues}"
+                                                  SelectedItem="{Binding Value}" />
+                                    </DockPanel>
+                                </DataTemplate>
+                            </ItemsControl.DataTemplates>
+                        </ItemsControl>
+                        <ItemsControl ItemsSource="{Binding OptionalTags}">
+                            <ItemsControl.DataTemplates>
+                                <DataTemplate DataType="{x:Type vm:ObservableGameMetadataStringTag}">
+                                    <DockPanel Classes="GroupBox">
+                                        <Label Classes="Header"
+                                               Content="{Binding Key}"
+                                               DockPanel.Dock="Top" />
+                                        <TextBox IsReadOnly="{Binding IsReadOnly}"
+                                                 Text="{Binding Value}" />
+                                    </DockPanel>
+                                </DataTemplate>
+                            </ItemsControl.DataTemplates>
+                        </ItemsControl>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+            <StackPanel Classes="DialogButtons"
+                        Grid.Column="0"
+                        Grid.ColumnSpan="2"
+                        Grid.Row="1">
+                <Button Command="{Binding Reset}"
+                        Content="Reset" />
+                <Button Command="{Binding Accept}"
+                        Content="OK"
+                        IsDefault="True" />
+                <Button Command="{Binding Reject}"
+                        Content="Cancel" />
+            </StackPanel>
+        </Grid>
+    </Panel>
+</Window>

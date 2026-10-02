@@ -1,0 +1,177 @@
+<Application Name="MzingaViewer"
+             x:Class="Mzinga.Viewer.App"
+             x:CompileBindings="True"
+             x:DataType="vm:AppViewModel"
+             RequestedThemeVariant="Dark"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:local="clr-namespace:Mzinga.Viewer"
+             xmlns:vm="clr-namespace:Mzinga.Viewer.ViewModels"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <!-- ===== DARK (default) ===== -->
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="AppBackgroundBrush" Color="#0F1416" />
+                    <SolidColorBrush x:Key="SurfaceBrush" Color="#171E21" />
+                    <SolidColorBrush x:Key="CardBrush" Color="#1E272B" />
+                    <SolidColorBrush x:Key="CardHoverBrush" Color="#273338" />
+                    <SolidColorBrush x:Key="BorderBrush" Color="#2B373C" />
+                    <SolidColorBrush x:Key="BorderStrongBrush" Color="#3A484F" />
+                    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#ECEFF1" />
+                    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#9BA7AD" />
+                    <SolidColorBrush x:Key="TextMutedBrush" Color="#6B777D" />
+                    <SolidColorBrush x:Key="AccentBrush" Color="#3FB68B" />
+                    <SolidColorBrush x:Key="AccentHoverBrush" Color="#4FC79B" />
+                    <SolidColorBrush x:Key="AccentPressedBrush" Color="#2E9E74" />
+                    <SolidColorBrush x:Key="MoveHighlightBrush" Color="#2A3A33" />
+                    <SolidColorBrush x:Key="EvalWhiteBrush" Color="#ECEFF0" />
+                    <SolidColorBrush x:Key="EvalBlackBrush" Color="#11171A" />
+                    <SolidColorBrush x:Key="HintBrush" Color="#6DB3FF" />
+                    <SolidColorBrush x:Key="HintBackgroundBrush" Color="#1B2A3A" />
+                    <SolidColorBrush x:Key="WarnBrush" Color="#F2C14E" />
+                    <SolidColorBrush x:Key="ForcedWinBackgroundBrush" Color="#3A3020" />
+                </ResourceDictionary>
+                <!-- ===== LIGHT ===== -->
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="AppBackgroundBrush" Color="#EFF2F1" />
+                    <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="CardBrush" Color="#FBFCFC" />
+                    <SolidColorBrush x:Key="CardHoverBrush" Color="#ECF1EF" />
+                    <SolidColorBrush x:Key="BorderBrush" Color="#DCE2E1" />
+                    <SolidColorBrush x:Key="BorderStrongBrush" Color="#C3CCCA" />
+                    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#141A1C" />
+                    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#55615F" />
+                    <SolidColorBrush x:Key="TextMutedBrush" Color="#8A938F" />
+                    <SolidColorBrush x:Key="AccentBrush" Color="#2E9E74" />
+                    <SolidColorBrush x:Key="AccentHoverBrush" Color="#38B083" />
+                    <SolidColorBrush x:Key="AccentPressedBrush" Color="#24805D" />
+                    <SolidColorBrush x:Key="MoveHighlightBrush" Color="#D6EDE2" />
+                    <SolidColorBrush x:Key="EvalWhiteBrush" Color="#F4F6F6" />
+                    <SolidColorBrush x:Key="EvalBlackBrush" Color="#2B2F31" />
+                    <SolidColorBrush x:Key="HintBrush" Color="#1F6FD1" />
+                    <SolidColorBrush x:Key="HintBackgroundBrush" Color="#E3EEFB" />
+                    <SolidColorBrush x:Key="WarnBrush" Color="#8A6100" />
+                    <SolidColorBrush x:Key="ForcedWinBackgroundBrush" Color="#FBF0D6" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+
+            <!-- variant-agnostic resources -->
+            <FontFamily x:Key="UiFont">Segoe UI, Inter, Roboto, system-ui, sans-serif</FontFamily>
+            <FontFamily x:Key="MonoFont">Cascadia Mono, Consolas, Menlo, monospace</FontFamily>
+
+            <local:EnumMatchToBooleanConverter x:Key="EnumMatchToBooleanConverter" />
+            <local:IdleBoolToWaitCursorConverter x:Key="IdleBoolToWaitCursorConverter" />
+            <local:TimeSpanToDecimalConverter x:Key="TimeSpanToDecimalConverter" />
+            <local:BoolToItalicFontStyleConverter x:Key="BoolToItalicFontStyleConverter" />
+            <local:BoolToBoldFontWeightConverter x:Key="BoolToBoldFontWeightConverter" />
+        </ResourceDictionary>
+    </Application.Resources>
+    <Application.Styles>
+        <FluentTheme>
+            <FluentTheme.Palettes>
+                <ColorPaletteResources x:Key="Dark"
+                                       Accent="#3FB68B"
+                                       RegionColor="#0F1416" />
+                <ColorPaletteResources x:Key="Light"
+                                       Accent="#2E9E74"
+                                       RegionColor="#EFF2F1" />
+            </FluentTheme.Palettes>
+        </FluentTheme>
+        <StyleInclude Source="avares://MzingaViewer/Resources/BugColors.axaml" />
+        <StyleInclude Source="avares://MzingaViewer/Controls/Controls.axaml" />
+        <StyleInclude Source="avares://MzingaViewer/Resources/AnalysisStyles.axaml" />
+
+        <Style Selector="Window">
+            <Setter Property="Icon"
+                    Value="avares://MzingaViewer/Resources/icon.ico" />
+            <Setter Property="Background"
+                    Value="{DynamicResource AppBackgroundBrush}" />
+            <Setter Property="Foreground"
+                    Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="FontFamily"
+                    Value="{DynamicResource UiFont}" />
+        </Style>
+        <Style Selector="CheckBox">
+            <Setter Property="Margin"
+                    Value="5" />
+        </Style>
+        <Style Selector="RadioButton">
+            <Setter Property="Margin"
+                    Value="5" />
+        </Style>
+        <Style Selector="TextBox">
+            <Setter Property="Margin"
+                    Value="5" />
+            <Setter Property="Padding"
+                    Value="10" />
+            <Setter Property="VerticalContentAlignment"
+                    Value="Center" />
+        </Style>
+        <Style Selector="TextBox.Scrolling ScrollViewer TextPresenter">
+            <Setter Property="Margin"
+                    Value="0,0,30,0" />
+        </Style>
+        <Style Selector="local|TileControl.MzingaIcon">
+            <Setter Property="HexSize"
+                    Value="24" />
+            <Setter Property="HexOrientation"
+                    Value="FlatTop" />
+            <Setter Property="PieceName"
+                    Value="wQ" />
+            <Setter Property="PieceStyle"
+                    Value="Text" />
+            <Setter Property="UseColoredPieces"
+                    Value="True" />
+            <Setter Property="UseSplitBackground"
+                    Value="True" />
+            <Setter Property="Text"
+                    Value="M" />
+            <Setter Property="HorizontalAlignment"
+                    Value="Center" />
+            <Setter Property="Margin"
+                    Value="5" />
+            <Setter Property="VerticalAlignment"
+                    Value="Top" />
+        </Style>
+        <Style Selector="StackPanel.DialogMain">
+            <Setter Property="Margin"
+                    Value="5" />
+            <Setter Property="Orientation"
+                    Value="Vertical" />
+        </Style>
+        <Style Selector="StackPanel.DialogButtons">
+            <Setter Property="Margin"
+                    Value="5" />
+            <Setter Property="HorizontalAlignment"
+                    Value="Right" />
+            <Setter Property="Orientation"
+                    Value="Horizontal" />
+        </Style>
+        <Style Selector="DockPanel.GroupBox">
+            <Setter Property="Margin"
+                    Value="5" />
+        </Style>
+        <Style Selector="DockPanel.GroupBox &gt; :is(Control)">
+            <Setter Property="VerticalAlignment"
+                    Value="Center" />
+            <Setter Property="HorizontalAlignment"
+                    Value="Stretch" />
+        </Style>
+    </Application.Styles>
+    <NativeMenu.Menu>
+        <NativeMenu>
+            <NativeMenuItem Command="{Binding LaunchMzingaWebsite}"
+                            Header="Mzinga Website" />
+            <NativeMenuItem Command="{Binding LaunchHiveWebsite}"
+                            Header="Hive Website" />
+            <NativeMenuItemSeparator />
+            <NativeMenuItem Command="{Binding CheckForUpdatesAsync}"
+                            Header="Check for Updates"
+                            IsEnabled="{Binding CheckForUpdatesEnabled}" />
+            <NativeMenuItemSeparator />
+            <NativeMenuItem Command="{Binding ShowLicenses}"
+                            Header="About MzingaViewer" />
+        </NativeMenu>
+    </NativeMenu.Menu>
+</Application>

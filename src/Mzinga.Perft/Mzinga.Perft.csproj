@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <StartupObject>Mzinga.Perft.Program</StartupObject>
+    <AssemblyName>MzingaPerft</AssemblyName>
+    <RootNamespace>Mzinga.Perft</RootNamespace>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Mzinga\Mzinga.csproj" />
+  </ItemGroup>
+
+</Project>

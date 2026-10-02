@@ -1,0 +1,2 @@
+﻿# Enemy will win in one move, so block it (2 ply)
+Base;InProgress;White[14];wS1;bS1 wS1-;wQ \wS1;bQ bS1/;wB1 /wS1;bB1 bS1\;wB1 wS1;bB1 bS1;wB1 wQ;bB1 -bQ;wS1 bQ\;bS1 -wB1;wS1 bS1\;bA1 bQ-;wS1 bQ\;bA1 bS1\;wS1 bA1\;bA2 \bQ;wS1 -bS1;bA2 \wB1;wS1 bA2/;bQ bB1/;wB1 bB1;bQ wS1\;wS1 wB1-;bA3 bA1\	2	wS1 bA3-
