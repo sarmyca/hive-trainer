@@ -177,9 +177,53 @@
                 </DockPanel>
                 <DockPanel Classes="GroupBox">
                     <Label Classes="Header"
-                           Content="Engine Settings"
+                           Content="Opponent Difficulty"
                            DockPanel.Dock="Top" />
+                    <StackPanel>
+                    <StackPanel HorizontalAlignment="Center"
+                                Orientation="Horizontal">
+                        <RadioButton Classes="segment"
+                                     Command="{Binding ToggleRadioButton}"
+                                     CommandParameter="Difficulty.Easy"
+                                     Content="Easy"
+                                     GroupName="Difficulty"
+                                     IsChecked="{Binding Path=Difficulty, Mode=OneWay, Converter={StaticResource EnumMatchToBooleanConverter}, ConverterParameter=Easy}" />
+                        <RadioButton Classes="segment"
+                                     Command="{Binding ToggleRadioButton}"
+                                     CommandParameter="Difficulty.Medium"
+                                     Content="Medium"
+                                     GroupName="Difficulty"
+                                     IsChecked="{Binding Path=Difficulty, Mode=OneWay, Converter={StaticResource EnumMatchToBooleanConverter}, ConverterParameter=Medium}" />
+                        <RadioButton Classes="segment"
+                                     Command="{Binding ToggleRadioButton}"
+                                     CommandParameter="Difficulty.Hard"
+                                     Content="Hard"
+                                     GroupName="Difficulty"
+                                     IsChecked="{Binding Path=Difficulty, Mode=OneWay, Converter={StaticResource EnumMatchToBooleanConverter}, ConverterParameter=Hard}" />
+                        <RadioButton Classes="segment"
+                                     Command="{Binding ToggleRadioButton}"
+                                     CommandParameter="Difficulty.Custom"
+                                     Content="Custom"
+                                     GroupName="Difficulty"
+                                     IsChecked="{Binding Path=Difficulty, Mode=OneWay, Converter={StaticResource EnumMatchToBooleanConverter}, ConverterParameter=Custom}" />
+                    </StackPanel>
+                    <TextBlock Classes="caption"
+                               HorizontalAlignment="Center"
+                               Margin="5,4,5,8"
+                               MaxWidth="420"
+                               Text="{Binding DifficultyDescription}"
+                               TextAlignment="Center"
+                               TextWrapping="Wrap" />
+                    <TextBlock Classes="caption"
+                               FontStyle="Italic"
+                               HorizontalAlignment="Center"
+                               Margin="5,0,5,8"
+                               MaxWidth="420"
+                               Text="The evaluation bar, hints and Play best use their own analysis strength (Engine menu)."
+                               TextAlignment="Center"
+                               TextWrapping="Wrap" />
                     <Grid ColumnDefinitions="Auto,Auto,*"
+                          IsVisible="{Binding IsCustomDifficulty}"
                           RowDefinitions="Auto,Auto">
                         <Label Content="Search For"
                                Grid.Column="0"
@@ -216,6 +260,7 @@
                                        Value="{Binding BestMoveMaxTimeValue, Converter={StaticResource TimeSpanToDecimalConverter}}"
                                        VerticalAlignment="Center" />
                     </Grid>
+                    </StackPanel>
                 </DockPanel>
             </StackPanel>
             <StackPanel Classes="DialogButtons"

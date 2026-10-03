@@ -66,6 +66,16 @@
         <Setter Property="MinHeight" Value="40" />
     </Style>
 
+    <!-- Segmented choice (e.g. AI difficulty): radio buttons drawn as toggle buttons -->
+    <Style Selector="RadioButton.segment">
+        <Setter Property="Theme" Value="{StaticResource {x:Type ToggleButton}}" />
+        <Setter Property="MinWidth" Value="84" />
+        <Setter Property="Margin" Value="3" />
+        <Setter Property="Padding" Value="12,6" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
+
     <!-- ===== Card / panel ===== -->
     <Style Selector="Border.card">
         <Setter Property="Background" Value="{DynamicResource CardBrush}" />

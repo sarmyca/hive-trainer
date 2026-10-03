@@ -218,6 +218,95 @@ namespace Mzinga.Viewer.ViewModels
             }
         }
 
+        #region Difficulty presets
+
+        // Presets only pick the existing search limits (depth or time); the engine itself is unchanged.
+        private static readonly (BestMoveType Type, int? Depth, TimeSpan? Time) EasyPreset = (BestMoveType.MaxDepth, 1, null);
+        private static readonly (BestMoveType Type, int? Depth, TimeSpan? Time) MediumPreset = (BestMoveType.MaxDepth, 2, null);
+        private static readonly (BestMoveType Type, int? Depth, TimeSpan? Time) HardPreset = (BestMoveType.MaxTime, null, TimeSpan.FromSeconds(5));
+
+        public AIDifficulty Difficulty
+        {
+            get
+            {
+                return _difficulty;
+            }
+            set
+            {
+                try
+                {
+                    _difficulty = value;
+
+                    var preset = value switch
+                    {
+                        AIDifficulty.Easy => EasyPreset,
+                        AIDifficulty.Medium => MediumPreset,
+                        AIDifficulty.Hard => HardPreset,
+                        _ => ((BestMoveType Type, int? Depth, TimeSpan? Time)?)null,
+                    };
+
+                    if (preset.HasValue)
+                    {
+                        BestMoveType = preset.Value.Type;
+                        if (preset.Value.Type == BestMoveType.MaxDepth)
+                        {
+                            BestMoveMaxDepthValue = preset.Value.Depth;
+                        }
+                        else
+                        {
+                            BestMoveMaxTimeValue = preset.Value.Time;
+                        }
+                    }
+
+                    OnPropertyChanged(nameof(Difficulty));
+                    OnPropertyChanged(nameof(IsCustomDifficulty));
+                    OnPropertyChanged(nameof(DifficultyDescription));
+                }
+                catch (Exception ex)
+                {
+                    ExceptionUtils.HandleException(ex);
+                }
+            }
+        }
+        private AIDifficulty _difficulty;
+
+        public bool IsCustomDifficulty => Difficulty == AIDifficulty.Custom;
+
+        public string DifficultyDescription => Difficulty switch
+        {
+            AIDifficulty.Easy => "Looks only at its own next move. Good for learning the rules.",
+            AIDifficulty.Medium => "Also considers your reply. Punishes obvious mistakes.",
+            AIDifficulty.Hard => "Thinks for up to 5 seconds per move, looking several moves ahead.",
+            _ => "Search depth: how many moves ahead the AI looks. Max time: the AI looks deeper and deeper until time runs out.",
+        };
+
+        private static AIDifficulty DetectDifficulty(GameSettings settings)
+        {
+            if (Matches(settings, EasyPreset))
+            {
+                return AIDifficulty.Easy;
+            }
+
+            if (Matches(settings, MediumPreset))
+            {
+                return AIDifficulty.Medium;
+            }
+
+            if (Matches(settings, HardPreset))
+            {
+                return AIDifficulty.Hard;
+            }
+
+            return AIDifficulty.Custom;
+
+            static bool Matches(GameSettings s, (BestMoveType Type, int? Depth, TimeSpan? Time) p)
+            {
+                return s.BestMoveType == p.Type && (p.Type == BestMoveType.MaxDepth ? s.BestMoveMaxDepth == p.Depth : s.BestMoveMaxTime == p.Time);
+            }
+        }
+
+        #endregion
+
         public RelayCommand<string> ToggleRadioButton
         {
             get
@@ -237,6 +326,9 @@ namespace Mzinga.Viewer.ViewModels
                                 break;
                             case nameof(BestMoveType):
                                 BestMoveType = (BestMoveType)Enum.Parse(typeof(BestMoveType), split[1]);
+                                break;
+                            case nameof(Difficulty):
+                                Difficulty = (AIDifficulty)Enum.Parse(typeof(AIDifficulty), split[1]);
                                 break;
                         }
                     }
@@ -302,6 +394,7 @@ namespace Mzinga.Viewer.ViewModels
         public NewGameViewModel(GameSettings settings, bool isNewGame, Action<GameSettings> callback)
         {
             Settings = settings?.Clone() ?? new GameSettings();
+            _difficulty = DetectDifficulty(Settings);
 
             IsNewGame = isNewGame;
 
@@ -329,5 +422,13 @@ namespace Mzinga.Viewer.ViewModels
                 Callback(GetNewGameSettings());
             }
         }
+    }
+
+    public enum AIDifficulty
+    {
+        Easy,
+        Medium,
+        Hard,
+        Custom,
     }
 }

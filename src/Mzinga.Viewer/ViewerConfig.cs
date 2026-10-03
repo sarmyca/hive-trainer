@@ -73,6 +73,9 @@ namespace Mzinga.Viewer
 
         public bool ShowEvaluationBar { get; set; } = true;
 
+        // Thinking time of the viewer's own analyzer (evaluation bar, hint, "Play best"), separate from the opponent's difficulty
+        public double AnalysisSeconds { get; set; } = 1.5;
+
         public bool FirstRun { get; set; } = true;
 
         public bool CheckUpdateOnStart { get; set; } = true;
@@ -158,6 +161,9 @@ namespace Mzinga.Viewer
                         case "ShowEvaluationBar":
                             ShowEvaluationBar = ParseBoolValue(reader.ReadElementContentAsString(), ShowEvaluationBar);
                             break;
+                        case "AnalysisSeconds":
+                            AnalysisSeconds = ParseDoubleValue(reader.ReadElementContentAsString(), AnalysisSeconds);
+                            break;
                         case "FirstRun":
                             FirstRun = ParseBoolValue(reader.ReadElementContentAsString(), FirstRun);
                             break;
@@ -185,6 +191,11 @@ namespace Mzinga.Viewer
         private static bool ParseBoolValue(string rawValue, bool defaultValue)
         {
             return bool.TryParse(rawValue, out bool result) ? result : defaultValue;
+        }
+
+        private static double ParseDoubleValue(string rawValue, double defaultValue)
+        {
+            return double.TryParse(rawValue, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double result) && result > 0 ? result : defaultValue;
         }
 
         public void SaveConfig(Stream outputStream)
@@ -226,6 +237,7 @@ namespace Mzinga.Viewer
             writer.WriteElementString("ShowBoardHistory", ShowBoardHistory.ToString());
             writer.WriteElementString("ShowMoveCommentary", ShowMoveCommentary.ToString());
             writer.WriteElementString("ShowEvaluationBar", ShowEvaluationBar.ToString());
+            writer.WriteElementString("AnalysisSeconds", AnalysisSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture));
             writer.WriteElementString("FirstRun", FirstRun.ToString());
             writer.WriteElementString("CheckUpdateOnStart", CheckUpdateOnStart.ToString());
 
@@ -269,6 +281,7 @@ namespace Mzinga.Viewer
                 ShowBoardHistory = ShowBoardHistory,
                 ShowMoveCommentary = ShowMoveCommentary,
                 ShowEvaluationBar = ShowEvaluationBar,
+                AnalysisSeconds = AnalysisSeconds,
 
                 FirstRun = FirstRun,
                 CheckUpdateOnStart = CheckUpdateOnStart,
@@ -317,6 +330,7 @@ namespace Mzinga.Viewer
             ShowBoardHistory = config.ShowBoardHistory;
             ShowMoveCommentary = config.ShowMoveCommentary;
             ShowEvaluationBar = config.ShowEvaluationBar;
+            AnalysisSeconds = config.AnalysisSeconds;
 
             FirstRun = config.FirstRun;
             CheckUpdateOnStart = config.CheckUpdateOnStart;

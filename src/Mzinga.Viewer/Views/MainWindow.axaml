@@ -230,8 +230,30 @@
                                 <MenuItem Header="Show best move"
                                           IsChecked="{Binding ShowBestMove, Mode=TwoWay}"
                                           ToggleType="CheckBox" />
-                                <MenuItem Command="{Binding FindBestMove}"
+                                <MenuItem Command="{Binding PlayBestMove}"
                                           Header="Play best move" />
+                                <Separator />
+                                <MenuItem Header="Analysis strength (eval bar, hint, play best):"
+                                          IsEnabled="False" />
+                                <MenuItem Command="{Binding SetAnalysisStrength}"
+                                          CommandParameter="Fast"
+                                          GroupName="AnalysisStrength"
+                                          Header="Fast (0.5 s per position)"
+                                          IsChecked="{Binding IsAnalysisFast, Mode=OneWay}"
+                                          ToggleType="Radio" />
+                                <MenuItem Command="{Binding SetAnalysisStrength}"
+                                          CommandParameter="Standard"
+                                          GroupName="AnalysisStrength"
+                                          Header="Standard (1.5 s per position)"
+                                          IsChecked="{Binding IsAnalysisStandard, Mode=OneWay}"
+                                          ToggleType="Radio" />
+                                <MenuItem Command="{Binding SetAnalysisStrength}"
+                                          CommandParameter="Deep"
+                                          GroupName="AnalysisStrength"
+                                          Header="Deep (5 s per position)"
+                                          IsChecked="{Binding IsAnalysisDeep, Mode=OneWay}"
+                                          ToggleType="Radio" />
+                                <Separator />
                                 <MenuItem Command="{Binding ShowEngineOptions}"
                                           Header="Engine options..."
                                           InputGesture="Ctrl+Shift+E" />
@@ -716,11 +738,11 @@
                             </StackPanel>
                         </Button>
                         <Button Classes="action"
-                                Command="{Binding FindBestMove}"
+                                Command="{Binding PlayBestMove}"
                                 Grid.Column="1"
                                 Grid.Row="1"
                                 HorizontalAlignment="Stretch"
-                                ToolTip.Tip="Let the engine play the best move for you">
+                                ToolTip.Tip="Play the analysis' best move for you (uses the analysis strength, not the opponent's difficulty)">
                             <StackPanel Orientation="Horizontal"
                                         Spacing="6">
                                 <TextBlock Classes="icon"

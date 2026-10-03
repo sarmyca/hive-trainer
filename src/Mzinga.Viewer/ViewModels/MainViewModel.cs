@@ -83,6 +83,7 @@ namespace Mzinga.Viewer.ViewModels
                 SwitchToReviewMode.NotifyCanExecuteChanged();
 
                 FindBestMove.NotifyCanExecuteChanged();
+                PlayBestMove.NotifyCanExecuteChanged();
                 ShowEngineOptions.NotifyCanExecuteChanged();
                 ShowViewerConfig.NotifyCanExecuteChanged();
 
@@ -123,7 +124,7 @@ namespace Mzinga.Viewer.ViewModels
 
         // The timed-progress flag can be left "running" after a search ends early (the progress
         // task may report once more after it was stopped), so also require the engine to be busy.
-        public bool IsEngineThinking => IsBusy && IsRunningTimedCommand;
+        public bool IsEngineThinking => (IsBusy && IsRunningTimedCommand) || _playBestRunning;
 
         public bool IsRunningIndeterminateCommand
         {
@@ -1317,7 +1318,150 @@ namespace Mzinga.Viewer.ViewModels
         private const double EvaluationScale = 10000.0;
         private const double EvaluationLogDivisor = 4.0;
 
-        private static readonly TimeSpan EvaluationMaxTime = TimeSpan.FromMilliseconds(1500);
+        // How long the analyzer thinks per position. Independent of the opponent's difficulty.
+        private static TimeSpan EvaluationMaxTime => TimeSpan.FromSeconds(ViewerConfig.AnalysisSeconds);
+
+        private const double AnalysisFastSeconds = 0.5;
+        private const double AnalysisStandardSeconds = 1.5;
+        private const double AnalysisDeepSeconds = 5.0;
+
+        public bool IsAnalysisFast => IsAnalysisSeconds(AnalysisFastSeconds);
+
+        public bool IsAnalysisStandard => IsAnalysisSeconds(AnalysisStandardSeconds);
+
+        public bool IsAnalysisDeep => IsAnalysisSeconds(AnalysisDeepSeconds);
+
+        private static bool IsAnalysisSeconds(double seconds) => Math.Abs(ViewerConfig.AnalysisSeconds - seconds) < 0.01;
+
+        // Parameter: "Fast", "Standard" or "Deep"
+        public RelayCommand<string> SetAnalysisStrength => _setAnalysisStrength ??= new RelayCommand<string>((strength) =>
+        {
+            ViewerConfig.AnalysisSeconds = strength switch
+            {
+                "Fast" => AnalysisFastSeconds,
+                "Deep" => AnalysisDeepSeconds,
+                _ => AnalysisStandardSeconds,
+            };
+
+            OnPropertyChanged(nameof(IsAnalysisFast));
+            OnPropertyChanged(nameof(IsAnalysisStandard));
+            OnPropertyChanged(nameof(IsAnalysisDeep));
+            RequestEvaluation();
+        });
+        private RelayCommand<string> _setAnalysisStrength = null;
+
+        private GameAI GetEvaluationAI(GameType gameType)
+        {
+            if (_evalAI is null || _evalAIGameType != gameType)
+            {
+                _evalAI = AppVM.InternalEngineConfig.GetGameAI(gameType);
+                _evalAIGameType = gameType;
+            }
+
+            return _evalAI;
+        }
+
+        #region Play best (uses the analyzer, not the opponent engine)
+
+        // "Play best" plays the analyzer's best move at analysis strength, so it matches the hint
+        // and is not weakened when playing against an Easy opponent.
+        public RelayCommand PlayBestMove => _playBestMove ??= new RelayCommand(async () => await PlayBestMoveAsync(), CanPlayBestMove);
+        private RelayCommand _playBestMove = null;
+
+        private bool _playBestRunning = false;
+
+        private bool CanPlayBestMove()
+        {
+            return IsIdle && !_playBestRunning && IsPlayMode && AppVM.EngineWrapper.GameInProgress && AppVM.EngineWrapper.CurrentTurnIsHuman;
+        }
+
+        private async Task PlayBestMoveAsync()
+        {
+            SetPlayBestRunning(true);
+            bool played = false;
+            try
+            {
+                ExitPeek();
+
+                Board live = Board?.Clone();
+                if (live is null || live.GameIsOver)
+                {
+                    return;
+                }
+
+                int moveCount = live.BoardHistory.Count;
+                Move? best = await RunExclusiveSearchAsync(live.Clone(), EvaluationMaxTime);
+
+                // Only play if nothing changed while we were thinking.
+                if (best.HasValue && LiveMoveCount == moveCount && IsPlayMode && AppVM.EngineWrapper.CurrentTurnIsHuman)
+                {
+                    if (best.Value == Move.PassMove)
+                    {
+                        AppVM.EngineWrapper.Pass();
+                        played = true;
+                    }
+                    else if (live.TryGetMoveString(best.Value, out string moveString))
+                    {
+                        AppVM.EngineWrapper.SendCommand("play {0}", moveString);
+                        played = true;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                ExceptionUtils.HandleException(ex);
+            }
+            finally
+            {
+                SetPlayBestRunning(false);
+
+                if (!played)
+                {
+                    // Background analysis was paused for this search; resume it for the current position.
+                    RequestEvaluation();
+                }
+            }
+        }
+
+        private void SetPlayBestRunning(bool running)
+        {
+            _playBestRunning = running;
+            OnPropertyChanged(nameof(IsEngineThinking));
+            PlayBestMove.NotifyCanExecuteChanged();
+        }
+
+        // Runs one search on the analyzer, after (and instead of) any background analysis.
+        private async Task<Move?> RunExclusiveSearchAsync(Board board, TimeSpan time)
+        {
+            ++_evalRequestId; // supersede background analysis
+            _evalCTS?.Cancel();
+
+            Task previous = _evalTask;
+            Task<Move?> search = Task.Run(async () =>
+            {
+                try
+                {
+                    await previous;
+                }
+                catch (Exception) { }
+
+                using CancellationTokenSource cts = new CancellationTokenSource(time);
+                GameAI ai = GetEvaluationAI(board.GameType);
+                return (Move?)await ai.GetBestMoveAsync(board, 0, cts.Token);
+            });
+            _evalTask = search;
+
+            try
+            {
+                return await search;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        #endregion
 
         private void RequestEvaluation()
         {
@@ -1387,13 +1531,7 @@ namespace Mzinga.Viewer.ViewModels
 
         private async Task EvaluateAsync(Board board, int requestId, CancellationToken token)
         {
-            if (_evalAI is null || _evalAIGameType != board.GameType)
-            {
-                _evalAI = AppVM.InternalEngineConfig.GetGameAI(board.GameType);
-                _evalAIGameType = board.GameType;
-            }
-
-            GameAI ai = _evalAI;
+            GameAI ai = GetEvaluationAI(board.GameType);
             PlayerColor toMove = board.CurrentColor;
             bool evaluateScore = board.BoardState != BoardState.NotStarted;
             double? lastScore = null;
@@ -1715,6 +1853,7 @@ namespace Mzinga.Viewer.ViewModels
 
                     RequestEvaluation();
                     NotifyPlayerPanel();
+                    PlayBestMove.NotifyCanExecuteChanged();
 
                     OnPropertyChanged(nameof(Board));
                     OnPropertyChanged(nameof(BoardIsLoaded));
