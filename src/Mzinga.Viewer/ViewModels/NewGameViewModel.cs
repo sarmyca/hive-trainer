@@ -168,6 +168,7 @@ namespace Mzinga.Viewer.ViewModels
                     OnPropertyChanged(nameof(BestMoveMaxDepthValue));
                     OnPropertyChanged(nameof(EnableBestMoveMaxTimeValue));
                     OnPropertyChanged(nameof(BestMoveMaxTimeValue));
+                    NotifyOpponentWarning();
                 }
                 catch (Exception ex)
                 {
@@ -194,6 +195,7 @@ namespace Mzinga.Viewer.ViewModels
             {
                 Settings.BestMoveMaxDepth = value;
                 OnPropertyChanged(nameof(BestMoveMaxDepthValue));
+                NotifyOpponentWarning();
             }
         }
 
@@ -215,6 +217,7 @@ namespace Mzinga.Viewer.ViewModels
             {
                 Settings.BestMoveMaxTime = value;
                 OnPropertyChanged(nameof(BestMoveMaxTimeValue));
+                NotifyOpponentWarning();
             }
         }
 
@@ -261,6 +264,7 @@ namespace Mzinga.Viewer.ViewModels
                     OnPropertyChanged(nameof(Difficulty));
                     OnPropertyChanged(nameof(IsCustomDifficulty));
                     OnPropertyChanged(nameof(DifficultyDescription));
+                    NotifyOpponentWarning();
                 }
                 catch (Exception ex)
                 {
@@ -279,6 +283,46 @@ namespace Mzinga.Viewer.ViewModels
             AIDifficulty.Hard => "Thinks for up to 5 seconds per move, looking several moves ahead.",
             _ => "Search depth: how many moves ahead the AI looks. Max time: the AI looks deeper and deeper until time runs out.",
         };
+
+        // Warns when the opponent will likely search deeper than the viewer's analysis (eval bar,
+        // hint, Play best), so the "best move" may be weaker than the opponent's moves.
+        public string OpponentStrongerWarning
+        {
+            get
+            {
+                double analysisSeconds = AppVM.ViewerConfig.AnalysisSeconds;
+                const double strongestAnalysisSeconds = 5.0;
+
+                if (Settings.BestMoveType == BestMoveType.MaxTime && Settings.BestMoveMaxTime.HasValue)
+                {
+                    double opponentSeconds = Settings.BestMoveMaxTime.Value.TotalSeconds;
+
+                    if (opponentSeconds > strongestAnalysisSeconds)
+                    {
+                        return $"The opponent thinks {opponentSeconds:0.#} s per move, longer than even the strongest analysis (Deep, 5 s). It may be stronger than the hints and Play best.";
+                    }
+
+                    if (opponentSeconds > analysisSeconds)
+                    {
+                        return $"The opponent thinks {opponentSeconds:0.#} s per move, the analysis only {analysisSeconds:0.#} s. Hints and Play best may be weaker than the opponent; set Analysis strength to Deep in the Engine menu to match it.";
+                    }
+                }
+                else if (Settings.BestMoveType == BestMoveType.MaxDepth && Settings.BestMoveMaxDepth >= 4)
+                {
+                    return "A search depth of 4 or more can take longer than the analysis and may be stronger than the hints and Play best.";
+                }
+
+                return "";
+            }
+        }
+
+        public bool ShowOpponentStrongerWarning => !string.IsNullOrEmpty(OpponentStrongerWarning);
+
+        private void NotifyOpponentWarning()
+        {
+            OnPropertyChanged(nameof(OpponentStrongerWarning));
+            OnPropertyChanged(nameof(ShowOpponentStrongerWarning));
+        }
 
         private static AIDifficulty DetectDifficulty(GameSettings settings)
         {

@@ -1378,7 +1378,6 @@ namespace Mzinga.Viewer.ViewModels
         private async Task PlayBestMoveAsync()
         {
             SetPlayBestRunning(true);
-            bool played = false;
             try
             {
                 ExitPeek();
@@ -1390,20 +1389,35 @@ namespace Mzinga.Viewer.ViewModels
                 }
 
                 int moveCount = live.BoardHistory.Count;
-                Move? best = await RunExclusiveSearchAsync(live.Clone(), EvaluationMaxTime);
 
-                // Only play if nothing changed while we were thinking.
+                // Use the background analysis of the live position, so the move played is exactly the
+                // move the hint shows. Start that analysis if it isn't running (hint and bar hidden).
+                if (_searchRequestId != _evalRequestId)
+                {
+                    RequestEvaluation(force: true);
+                }
+
+                int requestId = _evalRequestId;
+                if (_completedRequestId != requestId)
+                {
+                    try
+                    {
+                        await _evalTask;
+                    }
+                    catch (Exception) { }
+                }
+
+                // Only play if the analysis finished for this exact position and nothing changed meanwhile.
+                Move? best = _completedRequestId == requestId ? _completedBestMove : null;
                 if (best.HasValue && LiveMoveCount == moveCount && IsPlayMode && AppVM.EngineWrapper.CurrentTurnIsHuman)
                 {
                     if (best.Value == Move.PassMove)
                     {
                         AppVM.EngineWrapper.Pass();
-                        played = true;
                     }
                     else if (live.TryGetMoveString(best.Value, out string moveString))
                     {
                         AppVM.EngineWrapper.SendCommand("play {0}", moveString);
-                        played = true;
                     }
                 }
             }
@@ -1414,12 +1428,6 @@ namespace Mzinga.Viewer.ViewModels
             finally
             {
                 SetPlayBestRunning(false);
-
-                if (!played)
-                {
-                    // Background analysis was paused for this search; resume it for the current position.
-                    RequestEvaluation();
-                }
             }
         }
 
@@ -1430,40 +1438,10 @@ namespace Mzinga.Viewer.ViewModels
             PlayBestMove.NotifyCanExecuteChanged();
         }
 
-        // Runs one search on the analyzer, after (and instead of) any background analysis.
-        private async Task<Move?> RunExclusiveSearchAsync(Board board, TimeSpan time)
-        {
-            ++_evalRequestId; // supersede background analysis
-            _evalCTS?.Cancel();
-
-            Task previous = _evalTask;
-            Task<Move?> search = Task.Run(async () =>
-            {
-                try
-                {
-                    await previous;
-                }
-                catch (Exception) { }
-
-                using CancellationTokenSource cts = new CancellationTokenSource(time);
-                GameAI ai = GetEvaluationAI(board.GameType);
-                return (Move?)await ai.GetBestMoveAsync(board, 0, cts.Token);
-            });
-            _evalTask = search;
-
-            try
-            {
-                return await search;
-            }
-            catch (Exception)
-            {
-                return null;
-            }
-        }
-
         #endregion
 
-        private void RequestEvaluation()
+        // force: analyze even if the evaluation bar and hint are hidden (used by "Play best").
+        private void RequestEvaluation(bool force = false)
         {
             int requestId = ++_evalRequestId;
             _evalCTS?.Cancel();
@@ -1473,7 +1451,7 @@ namespace Mzinga.Viewer.ViewModels
 
             Board board = DisplayBoard?.Clone();
 
-            if (board is null || !(ShowEvaluationBar || ShowBestMove))
+            if (board is null || !(ShowEvaluationBar || ShowBestMove || force))
             {
                 SetEvaluation(null, requestId);
                 return;
@@ -1494,7 +1472,7 @@ namespace Mzinga.Viewer.ViewModels
             {
                 // No evaluation for an empty board, but a hint for the opening placement is still useful.
                 SetEvaluation(null, requestId);
-                if (!ShowBestMove)
+                if (!ShowBestMove && !force)
                 {
                     return;
                 }
@@ -1502,6 +1480,13 @@ namespace Mzinga.Viewer.ViewModels
 
             CancellationTokenSource cts = new CancellationTokenSource(EvaluationMaxTime);
             _evalCTS = cts;
+            _searchRequestId = requestId;
+
+            // On your turn the analyzer uses as many cores as the opponent engine, so at the same time
+            // setting it searches like the opponent does. While the opponent is thinking it stays
+            // on a single core so it doesn't slow the opponent down (the bar still updates after your move).
+            bool opponentThinking = IsPlayMode && AppVM.EngineWrapper.CurrentTurnIsEngineAI;
+            int helperThreads = opponentThinking ? 0 : AppVM.InternalEngineConfig.MaxHelperThreads;
 
             // Chain onto the previous search: a GameAI instance must only run one search at a time.
             Task previous = _evalTask;
@@ -1520,7 +1505,7 @@ namespace Mzinga.Viewer.ViewModels
 
                 try
                 {
-                    await EvaluateAsync(board, requestId, cts.Token);
+                    await EvaluateAsync(board, requestId, helperThreads, cts.Token);
                 }
                 catch (Exception)
                 {
@@ -1529,7 +1514,7 @@ namespace Mzinga.Viewer.ViewModels
             });
         }
 
-        private async Task EvaluateAsync(Board board, int requestId, CancellationToken token)
+        private async Task EvaluateAsync(Board board, int requestId, int helperThreads, CancellationToken token)
         {
             GameAI ai = GetEvaluationAI(board.GameType);
             PlayerColor toMove = board.CurrentColor;
@@ -1585,10 +1570,11 @@ namespace Mzinga.Viewer.ViewModels
                 }
             }
 
+            Move result;
             ai.BestMoveFound += OnFound;
             try
             {
-                await ai.GetBestMoveAsync(board, 0, token);
+                result = await ai.GetBestMoveAsync(board, helperThreads, token);
             }
             finally
             {
@@ -1599,7 +1585,21 @@ namespace Mzinga.Viewer.ViewModels
             {
                 SetEvaluation(lastScore, requestId);
             }
+
+            // Remember the final answer so "Play best" plays exactly the move the hint ends on.
+            if (requestId == _evalRequestId)
+            {
+                _completedBestMove = result;
+                _completedRequestId = requestId;
+            }
         }
+
+        // Final best move of the most recent finished analysis, and which request it belongs to.
+        private Move? _completedBestMove = null;
+        private volatile int _completedRequestId = -1;
+
+        // The request id that has a background search scheduled (vs. one that returned early).
+        private int _searchRequestId = -1;
 
         private void ClearAnalysis()
         {

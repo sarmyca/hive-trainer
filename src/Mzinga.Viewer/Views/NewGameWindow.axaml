@@ -222,6 +222,25 @@
                                Text="The evaluation bar, hints and Play best use their own analysis strength (Engine menu)."
                                TextAlignment="Center"
                                TextWrapping="Wrap" />
+                    <Border Background="{DynamicResource ForcedWinBackgroundBrush}"
+                            CornerRadius="8"
+                            HorizontalAlignment="Center"
+                            IsVisible="{Binding ShowOpponentStrongerWarning}"
+                            Margin="5,0,5,8"
+                            MaxWidth="440"
+                            Padding="10,6">
+                        <Grid ColumnDefinitions="Auto,*">
+                            <TextBlock Classes="icon"
+                                       Foreground="{DynamicResource WarnBrush}"
+                                       Margin="0,1,8,0"
+                                       Text="&#xE7BA;"
+                                       VerticalAlignment="Top" />
+                            <TextBlock Foreground="{DynamicResource WarnBrush}"
+                                       Grid.Column="1"
+                                       Text="{Binding OpponentStrongerWarning}"
+                                       TextWrapping="Wrap" />
+                        </Grid>
+                    </Border>
                     <Grid ColumnDefinitions="Auto,Auto,*"
                           IsVisible="{Binding IsCustomDifficulty}"
                           RowDefinitions="Auto,Auto">

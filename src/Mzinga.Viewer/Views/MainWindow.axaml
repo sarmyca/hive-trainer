@@ -250,7 +250,7 @@
                                 <MenuItem Command="{Binding SetAnalysisStrength}"
                                           CommandParameter="Deep"
                                           GroupName="AnalysisStrength"
-                                          Header="Deep (5 s per position)"
+                                          Header="Deep (5 s per position, same settings as a Hard opponent)"
                                           IsChecked="{Binding IsAnalysisDeep, Mode=OneWay}"
                                           ToggleType="Radio" />
                                 <Separator />
